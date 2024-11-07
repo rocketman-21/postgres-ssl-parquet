@@ -34,9 +34,6 @@ RUN git clone https://github.com/CrunchyData/pg_parquet.git /pg_parquet
 # Set working directory
 WORKDIR /pg_parquet
 
-# Copy source code
-COPY pg_parquet/ .
-
 # Build pg_parquet
 RUN cargo pgrx build --release
 
