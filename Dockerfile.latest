@@ -28,6 +28,9 @@ RUN cargo install cargo-pgrx --version 0.12.6 --locked
 # Initialize pgrx for PostgreSQL 17
 RUN cargo pgrx init --pg17 $(which pg_config)
 
+# Clone pg_parquet repository
+RUN git clone https://github.com/CrunchyData/pg_parquet.git /pg_parquet
+
 # Set working directory
 WORKDIR /pg_parquet
 
