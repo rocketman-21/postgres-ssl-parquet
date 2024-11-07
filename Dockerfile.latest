@@ -1,5 +1,5 @@
 # Stage 1: Build pg_parquet extension
-FROM rust:1.72-slim as builder
+FROM rustlang/rust:nightly-slim as builder
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git
 
 # Install cargo-pgrx
-RUN cargo install cargo-pgrx --version 0.12.8 --locked
+RUN cargo install cargo-pgrx --version 0.12.6 --locked
 
 # Initialize pgrx for PostgreSQL 17
 RUN cargo pgrx init --pg17 $(which pg_config)
