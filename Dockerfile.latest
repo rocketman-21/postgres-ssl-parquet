@@ -1,4 +1,4 @@
-FROM postgres:latest
+FROM postgres:17
 
 # Install required tools
 RUN apt-get update && apt-get install -y openssl sudo curl build-essential pkg-config libssl-dev git libclang-dev postgresql-server-dev-17
