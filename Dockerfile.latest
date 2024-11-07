@@ -1,7 +1,7 @@
 FROM postgres:latest
 
 # Install required tools
-RUN apt-get update && apt-get install -y openssl sudo curl build-essential pkg-config libssl-dev git libclang-dev
+RUN apt-get update && apt-get install -y openssl sudo curl build-essential pkg-config libssl-dev git libclang-dev postgresql-server-dev-17
 
 # Allow the postgres user to execute certain commands as root without a password
 RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/openssl" > /etc/sudoers.d/postgres
