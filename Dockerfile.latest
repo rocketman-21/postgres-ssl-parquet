@@ -1,28 +1,23 @@
 # Stage 1: Build pg_parquet extension
 FROM rustlang/rust:nightly-slim as builder
 
-# Install dependencies
+# Install dependencies and add PostgreSQL's repository
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
     gnupg2 \
-    lsb-release
-
-# Add PostgreSQL's repository GPG key
-RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-    | gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
-
-# Add PostgreSQL's repository to the sources list
-RUN echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] \
-    http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
-    > /etc/apt/sources.list.d/pgdg.list
-
-# Install PostgreSQL development headers
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-server-dev-17 \
-    libssl-dev \
+    lsb-release \
+    git \
     pkg-config \
-    git
+    libssl-dev \
+    && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    | gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] \
+    http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+    > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-server-dev-17 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install cargo-pgrx
 RUN cargo install cargo-pgrx --version 0.12.6 --locked
@@ -30,20 +25,23 @@ RUN cargo install cargo-pgrx --version 0.12.6 --locked
 # Initialize pgrx for PostgreSQL 17
 RUN cargo pgrx init --pg17 $(which pg_config)
 
-# Clone pg_parquet repository
-RUN git clone https://github.com/CrunchyData/pg_parquet.git /pg_parquet
+# Clone pg_parquet repository (shallow clone for speed)
+RUN git clone --depth 1 https://github.com/CrunchyData/pg_parquet.git /pg_parquet
 
 # Set working directory
 WORKDIR /pg_parquet
 
-# Build pg_parquet
+# Install the extension
 RUN cargo pgrx install --release
 
 # Stage 2: Final image
 FROM postgres:17
 
-# Install OpenSSL and sudo
-RUN apt-get update && apt-get install -y openssl sudo
+# Install OpenSSL and sudo, and clean up apt lists
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    sudo \
+    && rm -rf /var/lib/apt/lists/*
 
 # Allow the postgres user to execute certain commands as root without a password
 RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/openssl" > /etc/sudoers.d/postgres
@@ -53,9 +51,9 @@ COPY --chmod=755 init-ssl.sh /docker-entrypoint-initdb.d/init-ssl.sh
 COPY --chmod=755 wrapper.sh /usr/local/bin/wrapper.sh
 
 # Copy pg_parquet extension from builder
-COPY --from=builder /pg_parquet/target/release/pg_parquet.so /usr/lib/postgresql/17/lib/
-COPY --from=builder /pg_parquet/pg_parquet.control /usr/share/postgresql/17/extension/
-COPY --from=builder /pg_parquet/sql/pg_parquet--*.sql /usr/share/postgresql/17/extension/
+COPY --from=builder /usr/local/lib/postgresql/pg_parquet.so /usr/lib/postgresql/17/lib/
+COPY --from=builder /usr/local/share/postgresql/extension/pg_parquet.control /usr/share/postgresql/17/extension/
+COPY --from=builder /usr/local/share/postgresql/extension/pg_parquet--*.sql /usr/share/postgresql/17/extension/
 
 # Set shared_preload_libraries
 ENV POSTGRES_SHARED_PRELOAD_LIBRARIES pg_parquet
