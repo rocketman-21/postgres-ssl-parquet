@@ -18,13 +18,22 @@ FROM rust:1.72-slim as builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ca-certificates \
-    gnupg
+    gnupg2 \
+    lsb-release
 
-# Add PostgreSQL Apt repository
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
-    && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+# Add PostgreSQL's repository GPG key
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    | gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
 
+# Add PostgreSQL's repository to the sources list
+RUN echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] \
+    http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+    > /etc/apt/sources.list.d/pgdg.list
 
+# Install postgresql-server-dev-17
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-server-dev-17
+    
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
