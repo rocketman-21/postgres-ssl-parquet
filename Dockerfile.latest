@@ -21,8 +21,17 @@ RUN cargo install cargo-pgrx --version 0.12.6 --locked && \
 # Set shared_preload_libraries
 ENV POSTGRES_SHARED_PRELOAD_LIBRARIES pg_parquet
 
+# Clone pg_parquet repository (shallow clone for speed)
+RUN git clone --depth 1 https://github.com/CrunchyData/pg_parquet.git /pg_parquet
+
+# Set working directory
+WORKDIR /pg_parquet
+
 # Build the extension without installing
 RUN cargo pgrx install --release
+
+# Reset working directory
+WORKDIR /
 
 ENTRYPOINT ["wrapper.sh"]
 CMD ["postgres", "--port=5432"]
