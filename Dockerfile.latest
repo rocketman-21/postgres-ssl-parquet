@@ -1,7 +1,7 @@
 FROM postgres:latest
 
-# Install OpenSSL and sudo
-RUN apt-get update && apt-get install -y openssl sudo
+# Install required tools
+RUN apt-get update && apt-get install -y openssl sudo curl
 
 # Allow the postgres user to execute certain commands as root without a password
 RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/openssl" > /etc/sudoers.d/postgres
@@ -10,7 +10,9 @@ RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/ope
 COPY --chmod=755 init-ssl.sh /docker-entrypoint-initdb.d/init-ssl.sh
 COPY --chmod=755 wrapper.sh /usr/local/bin/wrapper.sh
 
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Install Rust
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install cargo-pgrx and initialize for PostgreSQL 17
 RUN cargo install cargo-pgrx --version 0.12.6 --locked && \
