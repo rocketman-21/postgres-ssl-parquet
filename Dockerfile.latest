@@ -32,7 +32,7 @@ RUN git clone --depth 1 https://github.com/CrunchyData/pg_parquet.git /pg_parque
 WORKDIR /pg_parquet
 
 # Build the extension without installing
-RUN cargo pgrx build --release
+RUN cargo pgrx run --release
 
 # Stage 2: Final image
 FROM postgres:17
