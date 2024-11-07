@@ -39,7 +39,7 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install cargo-pgrx at version matching pg_parquet's pgrx dependency
-RUN cargo install cargo-pgrx --version 0.12.10 --locked
+RUN cargo install cargo-pgrx --version 0.12.6 --locked
 
 # Initialize pgrx for PostgreSQL 17
 RUN cargo pgrx init --pg17 /usr/lib/postgresql/17/bin/pg_config
