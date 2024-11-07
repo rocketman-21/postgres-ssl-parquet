@@ -33,7 +33,7 @@ RUN echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] \
 # Install postgresql-server-dev-17
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-server-dev-17
-    
+
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-server-dev-17
 
 # Install cargo-pgrx
-RUN cargo install cargo-pgrx --version 0.12.6 --locked
+RUN cargo install cargo-pgrx --version 0.12.8 --locked
 
 # Initialize pgrx for PostgreSQL 17
 RUN cargo pgrx init --pg17 $(which pg_config)
