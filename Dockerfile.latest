@@ -1,17 +1,3 @@
-# Stage 1: Final image
-FROM postgres:17
-
-# Install OpenSSL and sudo
-RUN apt-get update && apt-get install -y openssl sudo
-
-# Allow the postgres user to execute certain commands as root without a password
-RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/openssl" > /etc/sudoers.d/postgres
-
-# Add init scripts while setting permissions
-COPY --chmod=755 init-ssl.sh /docker-entrypoint-initdb.d/init-ssl.sh
-COPY --chmod=755 wrapper.sh /usr/local/bin/wrapper.sh
-
-
 # Stage 1: Build pg_parquet extension
 FROM rust:1.72-slim as builder
 
@@ -31,17 +17,12 @@ RUN echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] \
     http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
     > /etc/apt/sources.list.d/pgdg.list
 
-# Install postgresql-server-dev-17
+# Install PostgreSQL development headers
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-server-dev-17
-
-# Install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-server-dev-17 \
     libssl-dev \
-    ca-certificates \
     pkg-config \
-    git \
-    postgresql-server-dev-17
+    git
 
 # Install cargo-pgrx
 RUN cargo install cargo-pgrx --version 0.12.8 --locked
@@ -58,7 +39,20 @@ WORKDIR /pg_parquet
 # Build pg_parquet
 RUN cargo pgrx build --release
 
-# Copy pg_parquet extension
+# Stage 2: Final image
+FROM postgres:17
+
+# Install OpenSSL and sudo
+RUN apt-get update && apt-get install -y openssl sudo
+
+# Allow the postgres user to execute certain commands as root without a password
+RUN echo "postgres ALL=(root) NOPASSWD: /usr/bin/mkdir, /bin/chown, /usr/bin/openssl" > /etc/sudoers.d/postgres
+
+# Add init scripts with permissions
+COPY --chmod=755 init-ssl.sh /docker-entrypoint-initdb.d/init-ssl.sh
+COPY --chmod=755 wrapper.sh /usr/local/bin/wrapper.sh
+
+# Copy pg_parquet extension from builder
 COPY --from=builder /pg_parquet/target/release/pg_parquet.so /usr/lib/postgresql/17/lib/
 COPY --from=builder /pg_parquet/pg_parquet.control /usr/share/postgresql/17/extension/
 COPY --from=builder /pg_parquet/sql/pg_parquet--*.sql /usr/share/postgresql/17/extension/
@@ -66,5 +60,6 @@ COPY --from=builder /pg_parquet/sql/pg_parquet--*.sql /usr/share/postgresql/17/e
 # Set shared_preload_libraries
 ENV POSTGRES_SHARED_PRELOAD_LIBRARIES pg_parquet
 
+# Entry point and command
 ENTRYPOINT ["wrapper.sh"]
 CMD ["postgres", "--port=5432"]
