@@ -18,6 +18,9 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN cargo install cargo-pgrx --version 0.12.6 --locked && \
     cargo pgrx init --pg17 $(which pg_config)
 
+# append the extension to shared_preload_libraries in ~/.pgrx/data-17/postgresql.conf 
+RUN echo "shared_preload_libraries = 'pg_parquet'" >> ~/.pgrx/data-17/postgresql.conf
+
 # Set shared_preload_libraries
 ENV POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_parquet
 
@@ -28,7 +31,7 @@ RUN git clone --depth 1 https://github.com/CrunchyData/pg_parquet.git /pg_parque
 WORKDIR /pg_parquet
 
 # Build the extension
-RUN cargo pgrx run --release
+RUN cargo pgrx install --release
 
 # Reset working directory
 WORKDIR /
